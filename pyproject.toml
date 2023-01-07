@@ -22,6 +22,10 @@ dependencies = ["asyncpg", "pydantic"]
 name = "Dragon-GCS"
 email = "878173121@qq.com"
 
+[project.urls]
+HomePage = "https://github.com/Dragon-GCS/postg-orm"
+"Bug Tracker" = "https://github.com/Dragon-GCS/postg-orm/issues"
+
 [tool.setuptools]
 packages = ["pgorm"]
 
