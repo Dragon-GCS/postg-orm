@@ -1,0 +1,29 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
+[project]
+name = "postg-orm"
+version = "0.0.1"
+description = "A simple ORM for PostgreSQL based on asyncpg."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Framework :: AsyncIO",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = ["asyncpg", "pydantic"]
+
+[[project.authors]]
+name = "Dragon-GCS"
+email = "878173121@qq.com"
+
+[tool.setuptools]
+packages = ["pgorm"]
+
+[tool.start]
+dev-dependencies = []
