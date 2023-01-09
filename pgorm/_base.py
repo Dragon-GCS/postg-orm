@@ -8,17 +8,20 @@
 from abc import ABC
 from dataclasses import KW_ONLY, dataclass
 from enum import Enum
-from typing import Callable, Generic, TypeVar, Any, ForwardRef, Type
-from pydantic import BaseModel
-
+from typing import Callable, Generic, TypeVar
 
 T = TypeVar("T")
 
 
-@dataclass
-class Default:
-    """The default value of the field."""
-    expr: Any
+class IndexMethod(Enum):
+    """ Index method. """
+
+    BTREE = "btree"
+    HASH = "hash"
+    GIST = "gist"
+    SPGIST = "spgist"
+    GIN = "gin"
+    BRIN = "brin"
 
 
 @dataclass
@@ -36,13 +39,18 @@ class Column(Generic[T]):
         nullable(bool): Whether the field can be null.
         primary_key(bool): Whether the field is the primary key.
         unique(bool): Whether the field is unique.
-        unique_group(int): To define a unique constraint for a group of columns, give them the same unique_group number.
-        null_not_distinct(bool): Whether the field is unique and null is not distinct, only valid when unique=True.
-        check(Callable|str|None): The check constraint. It will write to postgresql when it is a
-            string, else it only works in python as a function.
-        generated(Callable|str|None): The generated constraint. It will write to postgresql when it is a
-            string, else it only works in python as a function.
+        unique_group(int): To define a unique constraint for a group of columns,
+            give them the same unique_group number.
+        null_not_distinct(bool): Whether the field is unique and null is not distinct,
+            only valid when unique=True.
+        check(Callable|str|None): The check constraint. It will write to postgresql
+            when it is a string, else it only works in python as a function.
+        generated(Callable|str|None): The generated constraint. It will write to postgresql
+            when it is a string, else it only works in python as a function.
         generated_args(list[str]|None): Field names which should pass to generated function.
+        exclude(IndexMethod|None): Table will add exclude constraint when set with an IndexMethod.
+        exclude_op(str): The operator for exclude constraint, default is "=".
+            Reference: https://www.postgresql.org/docs/15/functions.html
     """
 
     _pg_type = ""
@@ -59,6 +67,8 @@ class Column(Generic[T]):
     generated: Callable[
         [T], T] | str | None = None                # field type GENERATED ALWAYS AS (height_cm / 2.54) STORED
     generated_args: list[str] | None = None        # field type GENERATED ALWAYS AS (height_cm / 2.54) STORED
+    exclude: IndexMethod | None = None             # field type EXCLUDE USING index_method (field WITH =)
+    exclude_op: str = "="
 
     def __new__(cls, *args, **kwargs):
         """Override __new__ to avoid calling another parent class's __new__ method
