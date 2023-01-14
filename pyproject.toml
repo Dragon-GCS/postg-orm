@@ -25,9 +25,7 @@ email = "878173121@qq.com"
 [project.urls]
 HomePage = "https://github.com/Dragon-GCS/postg-orm"
 "Bug Tracker" = "https://github.com/Dragon-GCS/postg-orm/issues"
-
+[project.optional-dependencies]
+dev = ["ormar", "peewee"]
 [tool.setuptools]
 packages = ["pgorm"]
-
-[tool.start]
-dev-dependencies = []
