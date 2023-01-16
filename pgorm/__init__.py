@@ -1,4 +1,4 @@
-from ._base import Model
+from ._base import Model, PartitionMethod, IndexMethod
 from .fields import (
     ArrayField,
     BooleanField,

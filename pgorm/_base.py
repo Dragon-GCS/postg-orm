@@ -9,6 +9,8 @@ from abc import ABC
 from dataclasses import KW_ONLY, dataclass
 from enum import Enum
 from typing import Callable, Generic, TypeVar
+from pydantic.fields import FieldInfo
+from datetime import date, datetime
 
 T = TypeVar("T")
 
@@ -24,6 +26,14 @@ class IndexMethod(Enum):
     BRIN = "brin"
 
 
+class PartitionMethod(Enum):
+    """ Partition method. """
+
+    RANGE = "range"
+    LIST = "list"
+    HASH = "hash"
+
+
 @dataclass
 class Column(Generic[T]):
     """ The base class for all field types. It contains the common attributes of all field types.
@@ -37,7 +47,7 @@ class Column(Generic[T]):
         pg_default(str): The default value of the field setting in postgresql.
         column_name(str): The column name, default is field name.
         nullable(bool): Whether the field can be null.
-        primary_key(bool): Whether the field is the primary key.
+        primary_key(bool): Whether the field is the primary key. nullable will be ignore.
         unique(bool): Whether the field is unique.
         unique_group(int): To define a unique constraint for a group of columns,
             give them the same unique_group number.
@@ -54,6 +64,7 @@ class Column(Generic[T]):
     """
 
     _pg_type = ""
+    __table__ = ""                                 # table name
     _: KW_ONLY
     default: T | None = None
     pg_default: T | None = None                    # default value in postgresql
@@ -69,14 +80,24 @@ class Column(Generic[T]):
     generated_args: list[str] | None = None        # field type GENERATED ALWAYS AS (height_cm / 2.54) STORED
     exclude: IndexMethod | None = None             # field type EXCLUDE USING index_method (field WITH =)
     exclude_op: str = "="
+    partition: PartitionMethod | None = None       # partition key for table, value is partition method
 
     def __new__(cls, *args, **kwargs):
         """Override __new__ to avoid calling another parent class's __new__ method
-        For calling super().__new__ correctly, don't pass any parameters to it.
-        These parameters will be passed to object.__init__().
+        For calling super().__new__ correctly, need pass corresponded parameters to another parent.
+        These parameters will be passed to instance.__init__().
         """
 
-        return super().__new__(cls)
+        if cls.__base__ in (date, datetime):
+            now = datetime.now()
+            cls = super().__new__(cls, now.year, now.month, now.day)    # type: ignore
+        else:
+            cls = super().__new__(cls)
+
+        # for pydantic
+        cls.field_info = FieldInfo(default=kwargs.pop("default", None))
+        cls.final = False
+        return cls
 
     def __sql__(self) -> str:
         """Generate the SQL statement for the field type with the specified attributes"""
@@ -84,7 +105,7 @@ class Column(Generic[T]):
         conditions = [self.column_name]
         if self._pg_type:
             conditions.append(self._pg_type)
-        if not self.nullable:
+        if not self.nullable and not self.primary_key:
             conditions.append("NOT NULL")
         if isinstance(self.check, str):
             conditions.append(f"CHECK ({self.check})")
@@ -96,14 +117,13 @@ class Column(Generic[T]):
             conditions.append("UNIQUE")
             if self.null_not_distinct:
                 conditions.append("NULLS NOT DISTINCT")
-        if self.primary_key:
-            conditions.append("PRIMARY KEY")
         return " ".join(conditions)
 
     def _set_column_name(self, name: str):
-        if not self.column_name:
-            self.column_name = name
-        return self
+        self.column_name = self.column_name or name
+
+    def _set_table(self, table: str):
+        self.__table__ = table
 
 
 class Model(ABC):

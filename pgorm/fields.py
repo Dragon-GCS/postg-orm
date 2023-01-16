@@ -31,7 +31,7 @@ class ForeignKey(Column):
 
     Args:
         to: The model class of the foreign key.
-        column(str): The column name of the foreign key
+        column(str): The column name of the foreign key, if not set, will use column name.
         on_delete(OnAction): The action to take when the referenced row is deleted.
         on_update(OnAction): The action to take when the referenced row is updated.
         group(int): To reference a group of columns, give them the same unique_group number.
@@ -54,6 +54,10 @@ class ForeignKey(Column):
         if self.on_update != OnAction.NO_ACTION:
             conditions.append(f"ON UPDATE {self.on_update.value}")
         return " ".join(conditions)
+
+    def _set_column_name(self, name: str):
+        super()._set_column_name(name)
+        self.column = self.column or self.column_name
 
 
 """
@@ -80,11 +84,6 @@ class IntegerField(Column[int], int):
             case 2: self._pg_type = "SMALLSERIAL" if self.auto_increment else "SMALLINT"
             case 4: self._pg_type = "SERIAL" if self.auto_increment else "INTEGER"
             case 8: self._pg_type = "BIGSERIAL" if self.auto_increment else "BIGINT"
-
-    def __sql__(self) -> str:
-        if self.auto_increment:
-            return f"{self.column_name} {self._pg_type}"
-        return super().__sql__()
 
 
 @dataclass
@@ -146,6 +145,7 @@ class TextField(Column[str], str):
 @dataclass
 class DateField(Column[datetime.date], datetime.date):
     """Reference: https://www.postgresql.org/docs/15/datatype-datetime.html"""
+    _pg_type = "DATE"
 
 
 @dataclass
